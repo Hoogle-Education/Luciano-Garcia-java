@@ -1,10 +1,10 @@
 package com.crud.taskschedule.service;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.crud.taskschedule.domain.dto.NovoUsuarioDto;
 import com.crud.taskschedule.domain.dto.PerfilUsuarioDto;
 import com.crud.taskschedule.domain.model.Usuario;
 import com.crud.taskschedule.repository.UsuarioRepository;
@@ -19,15 +19,11 @@ public class UsuarioService {
   @NonNull
   private UsuarioRepository usuarioRepository;
 
-  public List<PerfilUsuarioDto> pegarTodosUsuarios() {
-    return usuarioRepository
-            .findAll()
-            .stream()
-            .map(PerfilUsuarioDto::new)
-            .toList();
+  public Page<PerfilUsuarioDto> pegarTodosUsuarios(Pageable pagination) {    
+    return usuarioRepository.findAll(pagination).map(PerfilUsuarioDto::new);
   }
   
-  public Usuario pegarUsuarioPorId(Long id) {
+  public PerfilUsuarioDto pegarUsuarioPorId(Long id) {
     var buscaUsuario = usuarioRepository.findById(id);
 
     if(buscaUsuario.isEmpty()) {
@@ -35,24 +31,32 @@ public class UsuarioService {
     }
 
     var usuario = buscaUsuario.get();
-    return usuario;
+    return new PerfilUsuarioDto(usuario);
   }
 
-  public Usuario registrarUsuario(Usuario paraRegistrar) {
+  public PerfilUsuarioDto registrarUsuario(NovoUsuarioDto novoUsuario) {
 
     var isEmailAlreadyRegistered = usuarioRepository
       .findAll()
       .stream()
       .anyMatch((usuario) -> usuario
         .getEmail()
-        .equalsIgnoreCase(paraRegistrar.getEmail())
+        .equalsIgnoreCase(novoUsuario.getEmail())
       );
 
     if(isEmailAlreadyRegistered) {
       return null;
     }
 
-    var usuarioSalvo = usuarioRepository.save(paraRegistrar);
-    return usuarioSalvo;
+    var usuario = toUsuario(novoUsuario);
+    var usuarioSalvo = usuarioRepository.save(usuario);
+    return new PerfilUsuarioDto(usuarioSalvo);
+  }
+
+  private Usuario toUsuario(NovoUsuarioDto novoUsuario) {
+    var usuario = new Usuario();
+    usuario.setNome(novoUsuario.getNome());
+    usuario.setEmail(novoUsuario.getEmail());
+    return usuario;
   }
 }
